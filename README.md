@@ -13,10 +13,14 @@ The extension activates automatically when VS Code starts. Simply click on any c
 The extension provides the following commands:
 
 - `Quick Fix Helper: Show Quick Fixes Menu` - Opens the quick fixes menu at the current cursor position if there are any fixes available.
+- `Quick Fix Helper: Cycle All Quick Fixes` - Cycles through all areas with a quick fix one by one.
 
 ## Extension Settings
 
-Currently, this extension runs with default settings and doesn't require any configuration.
+This extension contributes the following settings:
+
+- `quickFixHelper.enableAutoShowOnClick`: Enable/disable automatically opening the quick fix menu when clicking on an area with an available quick fix (Default: `true`).
+
 
 ## License
 

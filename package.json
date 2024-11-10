@@ -3,7 +3,7 @@
 	"displayName": "Quick Fix Helper",
 	"description": "Makes applying quick fixes easier and faster",
 	"publisher": "DarkPhoenix",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"engines": {
 		"vscode": "^1.95.0"
 	},
@@ -16,15 +16,33 @@
 		"url": "https://github.com/0DarkPhoenix/template-string-formatter-plus.git"
 	},
 	"contributes": {
+		"commands": [
+			{
+				"command": "quickFixHelper.showQuickFixesMenu",
+				"title": "Quick Fix Helper: Show Quick Fixes Menu"
+			},
+			{
+				"command": "quickFixHelper.cycleAllQuickFixes",
+				"title": "Quick Fix Helper: Cycle Through All Quick Fixes"
+			}
+		],
 		"configuration": {
 			"title": "Quick Fix Helper",
-			"commands": [
-				{
-					"command": "quick-fix-helper.showQuickFixesMenu",
-					"title": "Quick Fix Helper: Show Quick Fixes Menu"
+			"properties": {
+				"quickFixHelper.enableAutoShowOnClick": {
+					"type": "boolean",
+					"default": true,
+					"description": "Show quick fix menu automatically when clicking on an affected area"
 				}
-			]
-		}
+			}
+		},
+		"keybindings": [
+			{
+				"command": "quickFixHelper.cycleAllQuickFixes",
+				"key": "ctrl+meta+alt+q",
+				"when": "editorTextFocus"
+			}
+		]
 	},
 	"scripts": {
 		"lint": "eslint .",
