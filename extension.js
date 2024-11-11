@@ -12,7 +12,14 @@ function activate(context) {
 			const position = editor.selection.active;
 			const diagnostics = vscode.languages
 				.getDiagnostics(editor.document.uri)
-				.filter((diagnostic) => diagnostic.range.contains(position));
+				.filter((diagnostic) => diagnostic.range.contains(position))
+				// Add severity check to only include errors and warnings
+				.filter(
+					(diagnostic) =>
+						diagnostic.severity === vscode.DiagnosticSeverity.Error ||
+						diagnostic.severity === vscode.DiagnosticSeverity.Warning ||
+						diagnostic.severity === vscode.DiagnosticSeverity.Information,
+				);
 
 			if (diagnostics.length > 0) {
 				await vscode.commands.executeCommand("editor.action.quickFix");
@@ -30,39 +37,19 @@ function activate(context) {
 
 			let currentIndex = 0;
 			const processNextDiagnostic = async () => {
-				await new Promise((resolve) => {
-					const disposable = vscode.languages.onDidChangeDiagnostics((e) => {
-						if (
-							e.uris.some((uri) => uri.toString() === editor.document.uri.toString())
-						) {
-							disposable.dispose();
-							resolve();
-						}
-					});
-
-					// Add a timeout in case no diagnostic update occurs
-					setTimeout(() => {
-						disposable.dispose();
-						resolve();
-					}, 100);
-				});
-
 				const currentDiagnostics = vscode.languages.getDiagnostics(editor.document.uri);
-				if (currentDiagnostics.length === 0) {
-					vscode.window.showInformationMessage("No more quick fixes available");
+				if (currentDiagnostics.length === 0 || currentIndex >= currentDiagnostics.length) {
+					vscode.window.showInformationMessage("Completed all quick fixes");
 					return;
 				}
 
 				const sortedDiagnostics = currentDiagnostics.sort((a, b) => {
-					// First compare by line number
 					if (a.range.start.line !== b.range.start.line) {
 						return a.range.start.line - b.range.start.line;
 					}
-					// If on same line, compare by character position
 					if (a.range.start.character !== b.range.start.character) {
 						return a.range.start.character - b.range.start.character;
 					}
-					// If at same position, compare by length of the diagnostic range
 					return (
 						a.range.end.character -
 						a.range.start.character -
@@ -70,32 +57,38 @@ function activate(context) {
 					);
 				});
 
-				if (currentIndex >= sortedDiagnostics.length) {
-					currentIndex = 0;
-				}
-
 				const diagnostic = sortedDiagnostics[currentIndex];
 				const position = diagnostic.range.start;
-				editor.selection = new vscode.Selection(position, position);
+				const adjustedPosition = new vscode.Position(position.line, position.character + 1);
+				editor.selection = new vscode.Selection(adjustedPosition, adjustedPosition);
 				editor.revealRange(diagnostic.range);
 
+				// Show the quick fix menu and wait for user selection
+				await vscode.commands.executeCommand("editor.action.quickFix");
+
+				// Wait for either a text change (fix applied) or quick fix menu dismissed
 				await new Promise((resolve) => {
-					const disposable = vscode.workspace.onDidChangeTextDocument(() => {
-						disposable.dispose();
+					const changeDisposable = vscode.workspace.onDidChangeTextDocument(() => {
+						changeDisposable.dispose();
+						selectionDisposable.dispose();
 						currentIndex++;
 						resolve();
 					});
 
-					const focusDisposable = vscode.window.onDidChangeActiveTextEditor(() => {
-						focusDisposable.dispose();
+					const selectionDisposable = vscode.window.onDidChangeTextEditorSelection(() => {
+						changeDisposable.dispose();
+						selectionDisposable.dispose();
 						currentIndex++;
 						resolve();
 					});
-
-					vscode.commands.executeCommand("editor.action.quickFix");
 				});
 
-				await processNextDiagnostic();
+				// Move to next diagnostic after user interaction
+				if (currentIndex < sortedDiagnostics.length) {
+					await processNextDiagnostic();
+				} else {
+					vscode.window.showInformationMessage("Completed all quick fixes");
+				}
 			};
 
 			await processNextDiagnostic();
@@ -103,7 +96,6 @@ function activate(context) {
 	);
 
 	let mouseHandler;
-
 	function updateMouseHandler() {
 		if (mouseHandler) {
 			mouseHandler.dispose();
@@ -111,8 +103,21 @@ function activate(context) {
 
 		if (vscode.workspace.getConfiguration("quickFixHelper").get("enableAutoShowOnClick")) {
 			mouseHandler = vscode.window.onDidChangeTextEditorSelection(async (event) => {
-				if (event.kind === vscode.TextEditorSelectionChangeKind.Mouse) {
-					await vscode.commands.executeCommand("quickFixHelper.showQuickFixesMenu");
+				// Check if it's a mouse event and left button was released
+				if (
+					event.kind === vscode.TextEditorSelectionChangeKind.Mouse &&
+					!vscode.window.activeTextEditor.selections.some(
+						(selection) => !selection.isEmpty,
+					)
+				) {
+					// Small delay to ensure we catch the mouse up event
+					setTimeout(async () => {
+						// Only proceed if no text is selected (indicating a mouse up event)
+						if (!vscode.window.activeTextEditor.selection.isEmpty) {
+							return;
+						}
+						await vscode.commands.executeCommand("quickFixHelper.showQuickFixesMenu");
+					}, 10);
 				}
 			});
 			context.subscriptions.push(mouseHandler);
