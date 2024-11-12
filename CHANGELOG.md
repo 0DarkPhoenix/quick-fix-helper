@@ -1,3 +1,7 @@
+## [0.0.4] - 2024-11-12
+### Fixed
+- Fixed a bug where the quick fix menu wouldn't open for hints
+
 ## [0.0.3] - 2024-11-11
 ### Fixed
 - Fixed unintentional opening of quick fix menu when creating a selection using the mouse

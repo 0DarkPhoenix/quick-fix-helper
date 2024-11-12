@@ -13,12 +13,12 @@ function activate(context) {
 			const diagnostics = vscode.languages
 				.getDiagnostics(editor.document.uri)
 				.filter((diagnostic) => diagnostic.range.contains(position))
-				// Add severity check to only include errors and warnings
 				.filter(
 					(diagnostic) =>
 						diagnostic.severity === vscode.DiagnosticSeverity.Error ||
 						diagnostic.severity === vscode.DiagnosticSeverity.Warning ||
-						diagnostic.severity === vscode.DiagnosticSeverity.Information,
+						diagnostic.severity === vscode.DiagnosticSeverity.Information ||
+						diagnostic.severity === vscode.DiagnosticSeverity.Hint,
 				);
 
 			if (diagnostics.length > 0) {
