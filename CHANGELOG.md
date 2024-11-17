@@ -1,3 +1,7 @@
+## [0.1.1] - 2024-11-17
+### Added
+- Updated the README for the newly added settings
+
 ## [0.1.0] - 2024-11-17
 ### Added
 - Added the command quickFixHelper.nextQuickFix as a replacement for the cycleAllQuickFixes command

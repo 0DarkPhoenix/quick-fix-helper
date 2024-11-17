@@ -20,7 +20,10 @@ The extension provides the following commands:
 This extension contributes the following settings:
 
 - `quickFixHelper.autoShowOnClick`: Enable/disable automatically opening the quick fix menu when clicking on an area with an available quick fix (Default: `true`).
-
+- `quickFixHelper.openOnError`: Enable/disable opening the quick fix menu for errors (Default: `true`).
+- `quickFixHelper.openOnWarning`: Enable/disable opening the quick fix menu for warnings (Default: `true`).
+- `quickFixHelper.openOnInfo`: Enable/disable opening the quick fix menu for information (Default: `true`).
+- `quickFixHelper.openOnHint`: Enable/disable opening the quick fix menu for hints (Default: `true`).
 
 ## License
 
