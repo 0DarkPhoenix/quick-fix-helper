@@ -1,9 +1,9 @@
 {
 	"name": "quick-fix-helper",
 	"displayName": "Quick Fix Helper",
-	"description": "Makes applying quick fixes easier and faster",
+	"description": "Makes applying quickfixes easier and faster",
 	"publisher": "DarkPhoenix",
-	"version": "0.0.4",
+	"version": "0.1.0",
 	"engines": {
 		"vscode": "^1.95.0"
 	},
@@ -22,23 +22,43 @@
 				"title": "Quick Fix Helper: Show Quick Fixes Menu"
 			},
 			{
-				"command": "quickFixHelper.cycleAllQuickFixes",
-				"title": "Quick Fix Helper: Cycle Through All Quick Fixes"
+				"command": "quickFixHelper.nextQuickFix",
+				"title": "Quick Fix Helper: Advance To Next Quick Fix"
 			}
 		],
 		"configuration": {
 			"title": "Quick Fix Helper",
 			"properties": {
-				"quickFixHelper.enableAutoShowOnClick": {
+				"quickFixHelper.autoShowOnClick": {
 					"type": "boolean",
 					"default": true,
 					"description": "Show quick fix menu automatically when clicking on an affected area"
+				},
+				"quickFixHelper.openOnError": {
+					"type": "boolean",
+					"default": true,
+					"description": "Show the quick fix menu when clicking on an error"
+				},
+				"quickFixHelper.openOnWarning": {
+					"type": "boolean",
+					"default": true,
+					"description": "Show the quick fix menu when clicking on a warning"
+				},
+				"quickFixHelper.openOnInfo": {
+					"type": "boolean",
+					"default": true,
+					"description": "Show the quick fix menu when clicking on information"
+				},
+				"quickFixHelper.openOnHint": {
+					"type": "boolean",
+					"default": true,
+					"description": "Show the quick fix menu when clicking on a hint"
 				}
 			}
 		},
 		"keybindings": [
 			{
-				"command": "quickFixHelper.cycleAllQuickFixes",
+				"command": "quickFixHelper.nextQuickFix",
 				"key": "ctrl+meta+alt+q",
 				"when": "editorTextFocus"
 			}

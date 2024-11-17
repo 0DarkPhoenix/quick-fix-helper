@@ -1,11 +1,32 @@
 const vscode = require("vscode");
 
 function activate(context) {
+	const getSettings = () => {
+		const openOnError = vscode.workspace.getConfiguration("quickFixHelper").get("openOnError");
+		const openOnWarning = vscode.workspace
+			.getConfiguration("quickFixHelper")
+			.get("openOnWarning");
+		const openOnInfo = vscode.workspace.getConfiguration("quickFixHelper").get("openOnInfo");
+		const openOnHint = vscode.workspace.getConfiguration("quickFixHelper").get("openOnHint");
+
+		return {
+			openOnError,
+			openOnWarning,
+			openOnInfo,
+			openOnHint,
+		};
+	};
+
 	const disposable = vscode.commands.registerCommand(
 		"quickFixHelper.showQuickFixesMenu",
 		async () => {
 			const editor = vscode.window.activeTextEditor;
 			if (!editor) {
+				return;
+			}
+
+			const { openOnError, openOnWarning, openOnInfo, openOnHint } = getSettings();
+			if (!openOnError && !openOnWarning && !openOnInfo && !openOnHint) {
 				return;
 			}
 
@@ -15,10 +36,12 @@ function activate(context) {
 				.filter((diagnostic) => diagnostic.range.contains(position))
 				.filter(
 					(diagnostic) =>
-						diagnostic.severity === vscode.DiagnosticSeverity.Error ||
-						diagnostic.severity === vscode.DiagnosticSeverity.Warning ||
-						diagnostic.severity === vscode.DiagnosticSeverity.Information ||
-						diagnostic.severity === vscode.DiagnosticSeverity.Hint,
+						(openOnError && diagnostic.severity === vscode.DiagnosticSeverity.Error) ||
+						(openOnWarning &&
+							diagnostic.severity === vscode.DiagnosticSeverity.Warning) ||
+						(openOnInfo &&
+							diagnostic.severity === vscode.DiagnosticSeverity.Information) ||
+						(openOnHint && diagnostic.severity === vscode.DiagnosticSeverity.Hint),
 				);
 
 			if (diagnostics.length > 0) {
@@ -27,71 +50,43 @@ function activate(context) {
 		},
 	);
 
-	const cycleQuickFixes = vscode.commands.registerCommand(
-		"quickFixHelper.cycleAllQuickFixes",
+	const advanceToNextQuickFix = vscode.commands.registerCommand(
+		"quickFixHelper.nextQuickFix",
 		async () => {
 			const editor = vscode.window.activeTextEditor;
 			if (!editor) {
 				return;
 			}
 
-			let currentIndex = 0;
-			const processNextDiagnostic = async () => {
-				const currentDiagnostics = vscode.languages.getDiagnostics(editor.document.uri);
-				if (currentDiagnostics.length === 0 || currentIndex >= currentDiagnostics.length) {
-					vscode.window.showInformationMessage("Completed all quick fixes");
-					return;
+			const currentDiagnostics = vscode.languages.getDiagnostics(editor.document.uri);
+			if (currentDiagnostics.length === 0) {
+				vscode.window.showInformationMessage("No quick fixes available");
+				return;
+			}
+
+			const sortedDiagnostics = currentDiagnostics.sort((a, b) => {
+				if (a.range.start.line !== b.range.start.line) {
+					return a.range.start.line - b.range.start.line;
 				}
+				return a.range.start.character - b.range.start.character;
+			});
 
-				const sortedDiagnostics = currentDiagnostics.sort((a, b) => {
-					if (a.range.start.line !== b.range.start.line) {
-						return a.range.start.line - b.range.start.line;
-					}
-					if (a.range.start.character !== b.range.start.character) {
-						return a.range.start.character - b.range.start.character;
-					}
-					return (
-						a.range.end.character -
-						a.range.start.character -
-						(b.range.end.character - b.range.start.character)
-					);
-				});
+			// Find the next diagnostic after current cursor position
+			const cursorPos = editor.selection.active;
+			const nextDiagnostic =
+				sortedDiagnostics.find(
+					(d) =>
+						d.range.start.line > cursorPos.line ||
+						(d.range.start.line === cursorPos.line &&
+							d.range.start.character > cursorPos.character),
+				) || sortedDiagnostics[0]; // Wrap around to first if at end
 
-				const diagnostic = sortedDiagnostics[currentIndex];
-				const position = diagnostic.range.start;
-				const adjustedPosition = new vscode.Position(position.line, position.character + 1);
-				editor.selection = new vscode.Selection(adjustedPosition, adjustedPosition);
-				editor.revealRange(diagnostic.range);
+			const position = nextDiagnostic.range.start;
+			const adjustedPosition = new vscode.Position(position.line, position.character + 1);
+			editor.selection = new vscode.Selection(adjustedPosition, adjustedPosition);
+			editor.revealRange(nextDiagnostic.range);
 
-				// Show the quick fix menu and wait for user selection
-				await vscode.commands.executeCommand("editor.action.quickFix");
-
-				// Wait for either a text change (fix applied) or quick fix menu dismissed
-				await new Promise((resolve) => {
-					const changeDisposable = vscode.workspace.onDidChangeTextDocument(() => {
-						changeDisposable.dispose();
-						selectionDisposable.dispose();
-						currentIndex++;
-						resolve();
-					});
-
-					const selectionDisposable = vscode.window.onDidChangeTextEditorSelection(() => {
-						changeDisposable.dispose();
-						selectionDisposable.dispose();
-						currentIndex++;
-						resolve();
-					});
-				});
-
-				// Move to next diagnostic after user interaction
-				if (currentIndex < sortedDiagnostics.length) {
-					await processNextDiagnostic();
-				} else {
-					vscode.window.showInformationMessage("Completed all quick fixes");
-				}
-			};
-
-			await processNextDiagnostic();
+			await vscode.commands.executeCommand("editor.action.quickFix");
 		},
 	);
 
@@ -101,7 +96,7 @@ function activate(context) {
 			mouseHandler.dispose();
 		}
 
-		if (vscode.workspace.getConfiguration("quickFixHelper").get("enableAutoShowOnClick")) {
+		if (vscode.workspace.getConfiguration("quickFixHelper").get("autoShowOnClick")) {
 			mouseHandler = vscode.window.onDidChangeTextEditorSelection(async (event) => {
 				// Check if it's a mouse event and left button was released
 				if (
@@ -130,13 +125,13 @@ function activate(context) {
 	// Listen for configuration changes
 	context.subscriptions.push(
 		vscode.workspace.onDidChangeConfiguration((e) => {
-			if (e.affectsConfiguration("quickFixHelper.enableAutoShowOnClick")) {
+			if (e.affectsConfiguration("quickFixHelper.autoShowOnClick")) {
 				updateMouseHandler();
 			}
 		}),
 	);
 
-	context.subscriptions.push(disposable, cycleQuickFixes);
+	context.subscriptions.push(disposable, advanceToNextQuickFix);
 }
 
 module.exports = {

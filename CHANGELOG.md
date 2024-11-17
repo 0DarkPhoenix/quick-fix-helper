@@ -1,3 +1,12 @@
+## [0.1.0] - 2024-11-17
+### Added
+- Added the command quickFixHelper.nextQuickFix as a replacement for the cycleAllQuickFixes command
+- Added togglable settings for showing the quick fix menu for errors, warnings, information and hints
+
+### Changed
+- Changed command name quickFixHelper.enableAutoShowOnClick to quickFixHelper.autoShowOnClick
+- Removed the quickFixHelper.cycleAllQuickFixes command
+
 ## [0.0.4] - 2024-11-12
 ### Fixed
 - Fixed a bug where the quick fix menu wouldn't open for hints
