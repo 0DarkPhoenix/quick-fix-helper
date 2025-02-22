@@ -3,7 +3,7 @@
 	"displayName": "Quick Fix Helper",
 	"description": "Makes applying quickfixes easier and faster",
 	"publisher": "DarkPhoenix",
-	"version": "0.1.1",
+	"version": "0.2.0",
 	"engines": {
 		"vscode": "^1.95.0"
 	},
@@ -53,6 +53,11 @@
 					"type": "boolean",
 					"default": true,
 					"description": "Show the quick fix menu when clicking on a hint"
+				},
+				"quickFixHelper.openMenuDelay": {
+					"type": "number",
+					"default": 150,
+					"description": "Delay in ms before showing the quick fix menu. \nIncreasing this delay will make it easier to select the text by double clicking when a quick fix is available for that section."
 				}
 			}
 		},

@@ -24,6 +24,7 @@ This extension contributes the following settings:
 - `quickFixHelper.openOnWarning`: Enable/disable opening the quick fix menu for warnings (Default: `true`).
 - `quickFixHelper.openOnInfo`: Enable/disable opening the quick fix menu for information (Default: `true`).
 - `quickFixHelper.openOnHint`: Enable/disable opening the quick fix menu for hints (Default: `true`).
+- `quickFixHelper.openMenuDelay`: Delay in milliseconds before opening the quick fix menu (Default: `150`).
 
 ## License
 

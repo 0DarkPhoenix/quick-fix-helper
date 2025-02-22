@@ -1,3 +1,7 @@
+## [0.2.0] - 2025-02-22
+### Added
+- Added a delay for opening the quick fix menu to make it easier to select text with an available quick fix when double clicking. This delay is customizable via the settings
+
 ## [0.1.1] - 2024-11-17
 ### Added
 - Updated the README for the newly added settings

@@ -1,23 +1,44 @@
 const vscode = require("vscode");
 
 function activate(context) {
-	const getSettings = () => {
-		const openOnError = vscode.workspace.getConfiguration("quickFixHelper").get("openOnError");
-		const openOnWarning = vscode.workspace
-			.getConfiguration("quickFixHelper")
-			.get("openOnWarning");
-		const openOnInfo = vscode.workspace.getConfiguration("quickFixHelper").get("openOnInfo");
-		const openOnHint = vscode.workspace.getConfiguration("quickFixHelper").get("openOnHint");
-
-		return {
-			openOnError,
-			openOnWarning,
-			openOnInfo,
-			openOnHint,
-		};
+	// Store settings at module level
+	const settings = {
+		openOnError: false,
+		openOnWarning: false,
+		openOnInfo: false,
+		openOnHint: false,
+		openMenuDelay: 150,
 	};
 
-	const disposable = vscode.commands.registerCommand(
+	// Function to update settings
+	const updateSettings = () => {
+		settings.openOnError = vscode.workspace
+			.getConfiguration("quickFixHelper")
+			.get("openOnError");
+		settings.openOnWarning = vscode.workspace
+			.getConfiguration("quickFixHelper")
+			.get("openOnWarning");
+		settings.openOnInfo = vscode.workspace.getConfiguration("quickFixHelper").get("openOnInfo");
+		settings.openOnHint = vscode.workspace.getConfiguration("quickFixHelper").get("openOnHint");
+		settings.openMenuDelay = vscode.workspace
+			.getConfiguration("quickFixHelper")
+			.get("openMenuDelay");
+	};
+
+	// Initial settings load
+	updateSettings();
+
+	// Listen for ALL quickFixHelper setting changes
+	context.subscriptions.push(
+		vscode.workspace.onDidChangeConfiguration((e) => {
+			if (e.affectsConfiguration("quickFixHelper")) {
+				updateSettings();
+				updateMouseHandler();
+			}
+		}),
+	);
+
+	const showQuickFixesMenu = vscode.commands.registerCommand(
 		"quickFixHelper.showQuickFixesMenu",
 		async () => {
 			const editor = vscode.window.activeTextEditor;
@@ -25,28 +46,58 @@ function activate(context) {
 				return;
 			}
 
-			const { openOnError, openOnWarning, openOnInfo, openOnHint } = getSettings();
-			if (!openOnError && !openOnWarning && !openOnInfo && !openOnHint) {
+			if (
+				!settings.openOnError &&
+				!settings.openOnWarning &&
+				!settings.openOnInfo &&
+				!settings.openOnHint
+			) {
 				return;
 			}
 
 			const position = editor.selection.active;
-			const diagnostics = vscode.languages
-				.getDiagnostics(editor.document.uri)
-				.filter((diagnostic) => diagnostic.range.contains(position))
-				.filter(
-					(diagnostic) =>
-						(openOnError && diagnostic.severity === vscode.DiagnosticSeverity.Error) ||
-						(openOnWarning &&
-							diagnostic.severity === vscode.DiagnosticSeverity.Warning) ||
-						(openOnInfo &&
-							diagnostic.severity === vscode.DiagnosticSeverity.Information) ||
-						(openOnHint && diagnostic.severity === vscode.DiagnosticSeverity.Hint),
-				);
 
-			if (diagnostics.length > 0) {
-				await vscode.commands.executeCommand("editor.action.quickFix");
+			// Store current position and create timeout
+			const currentPosition = { line: position.line, character: position.character };
+
+			// Clear any existing timeout
+			// @ts-ignore
+			if (showQuickFixesMenu.timeout) {
+				// @ts-ignore
+				clearTimeout(showQuickFixesMenu.timeout);
 			}
+
+			// Create new timeout
+			// @ts-ignore
+			showQuickFixesMenu.timeout = setTimeout(async () => {
+				// Check if position changed during timeout
+				const newPosition = editor.selection.active;
+				if (
+					currentPosition.line !== newPosition.line ||
+					currentPosition.character !== newPosition.character
+				) {
+					return;
+				}
+
+				const diagnostics = vscode.languages
+					.getDiagnostics(editor.document.uri)
+					.filter((diagnostic) => diagnostic.range.contains(position))
+					.filter(
+						(diagnostic) =>
+							(settings.openOnError &&
+								diagnostic.severity === vscode.DiagnosticSeverity.Error) ||
+							(settings.openOnWarning &&
+								diagnostic.severity === vscode.DiagnosticSeverity.Warning) ||
+							(settings.openOnInfo &&
+								diagnostic.severity === vscode.DiagnosticSeverity.Information) ||
+							(settings.openOnHint &&
+								diagnostic.severity === vscode.DiagnosticSeverity.Hint),
+					);
+
+				if (diagnostics.length > 0) {
+					await vscode.commands.executeCommand("editor.action.quickFix");
+				}
+			}, settings.openMenuDelay);
 		},
 	);
 
@@ -122,16 +173,7 @@ function activate(context) {
 	// Initial setup
 	updateMouseHandler();
 
-	// Listen for configuration changes
-	context.subscriptions.push(
-		vscode.workspace.onDidChangeConfiguration((e) => {
-			if (e.affectsConfiguration("quickFixHelper.autoShowOnClick")) {
-				updateMouseHandler();
-			}
-		}),
-	);
-
-	context.subscriptions.push(disposable, advanceToNextQuickFix);
+	context.subscriptions.push(showQuickFixesMenu, advanceToNextQuickFix);
 }
 
 module.exports = {
