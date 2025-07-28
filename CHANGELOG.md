@@ -1,3 +1,8 @@
+## [0.3.0] - 2025-07-28
+### Changed
+- Changed the behavior of the nextQuickFix command so it advances to the next quick fix including the current line instead of strictly searching after the cursor position
+- Changed the default keybind for nextQuickFix from `ctrl + meta + alt + q` to `ctrl + .`
+
 ## [0.2.0] - 2025-02-22
 ### Added
 - Added a delay for opening the quick fix menu to make it easier to select text with an available quick fix when double clicking. This delay is customizable via the settings

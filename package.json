@@ -3,13 +3,17 @@
 	"displayName": "Quick Fix Helper",
 	"description": "Makes applying quickfixes easier and faster",
 	"publisher": "DarkPhoenix",
-	"version": "0.2.0",
+	"version": "0.3.0",
 	"engines": {
 		"vscode": "^1.95.0"
 	},
 	"icon": "images/logo.png",
-	"categories": ["Other"],
-	"activationEvents": ["onStartupFinished"],
+	"categories": [
+		"Other"
+	],
+	"activationEvents": [
+		"onStartupFinished"
+	],
 	"main": "./extension.js",
 	"repository": {
 		"type": "git",
@@ -64,7 +68,7 @@
 		"keybindings": [
 			{
 				"command": "quickFixHelper.nextQuickFix",
-				"key": "ctrl+meta+alt+q",
+				"key": "ctrl+.",
 				"when": "editorTextFocus"
 			}
 		]
