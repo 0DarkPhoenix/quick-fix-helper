@@ -1,3 +1,11 @@
+## [0.3.1] - 2025-07-29
+### Changed
+- Changed default keybind of the nextQuickFix command on MacOS from `ctrl + .` to `cmd + .`
+
+### Fixed
+- Fixed a bug where the nextQuickFix command could only detect the first quick fix when multiple quick fixes were available on the same line
+
+
 ## [0.3.0] - 2025-07-28
 ### Changed
 - Changed the behavior of the nextQuickFix command so it advances to the next quick fix including the current line instead of strictly searching after the cursor position

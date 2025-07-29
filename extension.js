@@ -121,20 +121,19 @@ function activate(context) {
 
 			// TODO: Disable the command 'workbench.action.acceptSelectedQuickOpenItem' to prevent issues with this command being mapped to 'ctrl+.'
 
-			// try {
-			// 	await vscode.commands.executeCommand("workbench.action.closeQuickOpen");
-			// 	console.log("Closed quick fix menu");
-			// } catch (error) {
-			// 	// Command might fail if no menu is open, which is fine
-			// 	console.log("Failed to close quick open menu: ", error);
-			// }
-
-			// Small delay to ensure the menu is closed
-			await new Promise((resolve) => setTimeout(resolve, 50));
-
-			const currentDiagnostics = vscode.languages.getDiagnostics(
-				editor.document.uri,
-			);
+			const currentDiagnostics = vscode.languages
+				.getDiagnostics(editor.document.uri)
+				.filter(
+					(diagnostic) =>
+						(settings.openOnError &&
+							diagnostic.severity === vscode.DiagnosticSeverity.Error) ||
+						(settings.openOnWarning &&
+							diagnostic.severity === vscode.DiagnosticSeverity.Warning) ||
+						(settings.openOnInfo &&
+							diagnostic.severity === vscode.DiagnosticSeverity.Information) ||
+						(settings.openOnHint &&
+							diagnostic.severity === vscode.DiagnosticSeverity.Hint),
+				);
 			if (currentDiagnostics.length === 0) {
 				vscode.window.showInformationMessage("No quick fixes available");
 				return;
@@ -147,22 +146,21 @@ function activate(context) {
 				return a.range.start.character - b.range.start.character;
 			});
 
-			let nextDiagnostic = _findNextDiagnostic(editor.selection.active.line);
-			let position = nextDiagnostic.range.start;
-
-			// Check if this is the same position as last time
+			const currentPosition = editor.selection.active;
+			let skipCurrent = false;
 			if (
 				// @ts-ignore
 				advanceToNextQuickFix.lastPosition &&
 				// @ts-ignore
-				position.line === advanceToNextQuickFix.lastPosition.line &&
-				// @ts-ignore
-				position.character === advanceToNextQuickFix.lastPosition.character
+				currentPosition.line === advanceToNextQuickFix.lastPosition.line &&
+				currentPosition.character ===
+					// @ts-ignore
+					advanceToNextQuickFix.lastPosition.character
 			) {
-				// Find the next diagnostic after the current line
-				nextDiagnostic = _findNextDiagnostic(editor.selection.active.line + 1);
-				position = nextDiagnostic.range.start;
+				skipCurrent = true;
 			}
+			const nextDiagnostic = _findNextDiagnostic(currentPosition, skipCurrent);
+			const position = nextDiagnostic.range.start;
 
 			// Store the position for next comparison
 			// @ts-ignore
@@ -181,14 +179,35 @@ function activate(context) {
 
 			await vscode.commands.executeCommand("editor.action.quickFix");
 
-			function _findNextDiagnostic(cursorLine) {
-				const nextDiagnostic =
-					sortedDiagnostics.find(
-						(d) =>
-							d.range.start.line === cursorLine ||
-							d.range.start.line > cursorLine,
-					) || sortedDiagnostics[0];
-				return nextDiagnostic;
+			function _findNextDiagnostic(cursorPosition, skipCurrent = false) {
+				let nextDiagnostic;
+
+				if (skipCurrent) {
+					// Find the next diagnostic after the current position (including same line)
+					nextDiagnostic = sortedDiagnostics.find((d) => {
+						if (d.range.start.line === cursorPosition.line) {
+							return d.range.start.character > cursorPosition.character;
+						}
+						if (d.range.start.line > cursorPosition.line) {
+							return true;
+						}
+						return false;
+					});
+				} else {
+					// Find the first diagnostic at or after the current position
+					nextDiagnostic = sortedDiagnostics.find((d) => {
+						if (d.range.start.line === cursorPosition.line) {
+							return true;
+						}
+						if (d.range.start.line > cursorPosition.line) {
+							return true;
+						}
+						return false;
+					});
+				}
+
+				// If no diagnostic found after current position, wrap to the first one
+				return nextDiagnostic || sortedDiagnostics[0];
 			}
 		},
 	);
